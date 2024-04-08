@@ -16,6 +16,7 @@ where
     comparator: fn(&T, &T) -> bool,
 }
 
+// idx从1开始
 impl<T> Heap<T>
 where
     T: Default,
@@ -37,7 +38,21 @@ where
     }
 
     pub fn add(&mut self, value: T) {
-        //TODO
+        if self.is_empty() {
+            self.items.push(value);
+            self.count += 1;
+            return;
+        }
+        self.items.push(value);
+        self.count += 1;
+        let mut parent_idx = self.parent_idx(self.count);
+        let mut children_idx = self.count;
+        while parent_idx > 0 && (self.comparator)(&self.items[children_idx], &self.items[parent_idx]) {
+            self.items.swap(children_idx, parent_idx);
+            children_idx = parent_idx;
+            parent_idx = self.parent_idx(parent_idx);
+        }
+        
     }
 
     fn parent_idx(&self, idx: usize) -> usize {
@@ -56,10 +71,10 @@ where
         self.left_child_idx(idx) + 1
     }
 
-    fn smallest_child_idx(&self, idx: usize) -> usize {
-        //TODO
-		0
-    }
+    // fn smallest_child_idx(&self, idx: usize) -> usize {
+    //     //TODO
+	// 	0
+    // }
 }
 
 impl<T> Heap<T>
@@ -84,8 +99,29 @@ where
     type Item = T;
 
     fn next(&mut self) -> Option<T> {
-        //TODO
-		None
+        if self.count == 0 {
+            return None;
+        }
+        self.items.swap(1, self.count);
+        let result = self.items.pop();
+        self.count -= 1;
+        // 调整堆结构
+        let mut parent_idx = 1;
+        while 2*parent_idx < self.count {
+            let left_child_idx = self.left_child_idx(parent_idx);
+            let right_child_idx = self.right_child_idx(parent_idx);
+            let smallest_child_idx = if right_child_idx <= self.count && (self.comparator)(&self.items[right_child_idx], &self.items[left_child_idx]) {
+                right_child_idx
+            } else {
+                left_child_idx
+            };
+
+            if (self.comparator)(&self.items[smallest_child_idx], &self.items[parent_idx]) {
+                self.items.swap(smallest_child_idx, parent_idx);
+            }
+            parent_idx = smallest_child_idx;
+        }
+		result
     }
 }
 
@@ -125,10 +161,15 @@ mod tests {
     #[test]
     fn test_min_heap() {
         let mut heap = MinHeap::new();
+        println!("{:?}", heap.items);
         heap.add(4);
+        println!("{:?}", heap.items);
         heap.add(2);
+        println!("{:?}", heap.items);
         heap.add(9);
+        println!("{:?}", heap.items);
         heap.add(11);
+        println!("{:?}", heap.items);
         assert_eq!(heap.len(), 4);
         assert_eq!(heap.next(), Some(2));
         assert_eq!(heap.next(), Some(4));
@@ -144,10 +185,12 @@ mod tests {
         heap.add(2);
         heap.add(9);
         heap.add(11);
+        println!("{:?}", heap.items);
         assert_eq!(heap.len(), 4);
         assert_eq!(heap.next(), Some(11));
         assert_eq!(heap.next(), Some(9));
         assert_eq!(heap.next(), Some(4));
+        println!("{:?}", heap.items);
         heap.add(1);
         assert_eq!(heap.next(), Some(2));
     }
